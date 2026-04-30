@@ -11,6 +11,8 @@ import { Card } from "@/components/shared/Card";
 import { LiveBadge } from "@/components/shared/LiveBadge";
 import { StatTile } from "@/components/shared/StatTile";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { LiveStrip } from "@/components/cards/MatchCard";
+import { getDemoMatches, liveMatches } from "@/lib/data/demoMatches";
 
 const QUICK_LINKS = [
   {
@@ -34,6 +36,9 @@ const QUICK_LINKS = [
 ] as const;
 
 export default function HomePage() {
+  const matches = getDemoMatches();
+  const live = liveMatches(matches);
+
   return (
     <div className="space-y-8">
       <section className="surface relative overflow-hidden p-6 md:p-10">
@@ -76,20 +81,28 @@ export default function HomePage() {
       <section>
         <PageHeader
           title="Live now"
-          description="Auto-refreshes every 30 seconds during matches."
-          action={<LiveBadge />}
+          description={
+            live.length > 0
+              ? `${live.length} match${live.length === 1 ? "" : "es"} in progress.`
+              : "No live matches right now. Check back at kickoff."
+          }
+          action={live.length > 0 ? <LiveBadge /> : null}
         />
-        <Card className="flex flex-col items-start gap-2">
-          <p className="text-sm text-text-secondary">
-            No live matches right now. Check back at kickoff.
-          </p>
-          <Link
-            href="/scores"
-            className="text-sm font-medium text-accent transition-colors hover:text-accent-hover"
-          >
-            See upcoming fixtures →
-          </Link>
-        </Card>
+        {live.length > 0 ? (
+          <LiveStrip matches={live} />
+        ) : (
+          <Card className="flex flex-col items-start gap-2">
+            <p className="text-sm text-text-secondary">
+              Nothing live. Browse upcoming fixtures instead.
+            </p>
+            <Link
+              href="/scores"
+              className="text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+            >
+              See upcoming fixtures →
+            </Link>
+          </Card>
+        )}
       </section>
 
       <section>
