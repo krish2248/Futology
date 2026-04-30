@@ -7,17 +7,84 @@
 
 ## 🎯 Current Phase
 
-**Phase 0 — Repo & Environment Setup** ✅ shell complete (Supabase + Husky/CI deferred until backend keys exist)
-**Phase 1 — Auth, Onboarding, Shell** ✅ in demo mode — login + 3-step onboarding + Cmd+K + notifications + middleware all functional. Real Supabase wires up when keys arrive.
-**Phase 2 — Live Data Layer & Core Pages** ⏳ partial — MatchCard + PredictionCard built and fed by deterministic demo data. Real API-Football wiring pending.
+**Phase 0** ✅ shell complete (Supabase + Husky/CI deferred until backend keys exist)
+**Phase 1** ✅ in demo mode — login + onboarding + Cmd+K + middleware. Real Supabase swaps in when keys arrive.
+**Phase 2** ✅ in demo mode — `/api/football/*` routes + TanStack Query + 30 s polling + StandingsTable + MatchDetailSheet (5 tabs) + per-league pages. Real RapidAPI wires in by replacing the demo branch in each route.
+**Phase 4 (Match Predictor only)** ✅ in demo mode — `/api/ml/predict-match` returns deterministic seeded predictions; `/intelligence/match` is fully functional. The other 5 intelligence sub-pages remain placeholders.
 
-Next session resumes: Phase 2 properly — once Supabase + API-Football keys are provided, swap the demo data layer for real API routes and add live polling.
+Next session resumes: ask user for keys, then swap demo branches for real adapters one route at a time. Or keep building remaining intelligence sub-pages (Player Pulse, Sentiment, TacticBoard, Transfer Oracle, Fantasy IQ) which can be done in demo mode without external services.
 
 ---
 
 ## 📅 Session History
 
-### Session 1 — 2026-04-30 (Today)
+### Session 2 — 2026-05-01
+
+**Goal:** Establish the data layer that Phase 2/3/4 will plug into. Build it on demo data first so `/scores`, `/leagues/[id]`, match details, and the Match Predictor all work end-to-end without external keys. When real keys land, only the inside of each `route.ts` changes.
+
+**Built:**
+- TanStack Query v5 + `Providers` wrapper in root layout (staleTime 30 s, gcTime 5 min, retry 1, no refocus refetch — per bible Phase 7)
+- Demo API routes mirroring bible §10:
+  - `GET /api/football/live-scores?status=&league=`
+  - `GET /api/football/fixtures?status=&league=&team=`
+  - `GET /api/football/match/[fixtureId]` — full detail (events, stats, lineups, H2H)
+  - `GET /api/football/standings?league=` — rows + bands + league meta
+  - `GET /api/football/search?q=&type=`
+  - `POST /api/ml/predict-match` — body `{ home_id, away_id, competition_id }`
+  - All set Cache-Control per bible (`no-store` for live, `s-maxage=300` for fixtures/standings, `s-maxage=3600` for finished/team/player/search). Returns `{ data, demo: true|false }`.
+- `lib/api/config.ts` — central `isDemoMode`, cache-header table, `jsonResponse` helper
+- `lib/api/client.ts` — typed `api.{liveScores,fixtures,match,standings,search}` consumed by hooks
+- `hooks/useLiveScores.ts` — exports `useLiveScores` (30 s poll), `useFixtures`, `useMatchDetail`, `useStandings`
+- `lib/data/demoMatchDetail.ts` — synthesizes events/stats/lineups (4-3-3 with normalised pitch coords)/H2H
+- `lib/data/demoStandings.ts` — deterministic 16-team standings with bands per league
+- `lib/ml/predictor.ts` — seeded match-prediction function (home advantage + tier bonus + 3 plain-English factors)
+- `components/cards/StandingsTable.tsx` — sortable visually with European spots / relegation color bands, position arrows, form W/D/L pills, responsive hide-on-narrow columns, legend footer
+- `components/cards/MatchDetailSheet.tsx` — slide-up on mobile, side-sheet on desktop. 5 tabs:
+  - **Overview** — venue, referee, attendance, goalscorers
+  - **Stats** — bidirectional bars (possession, shots, xG, corners, fouls, cards) with dominant-side highlight
+  - **Lineups** — accurate-proportion pitch SVG with 22 player dots in 4-3-3 + lineup lists
+  - **Events** — chronological timeline with home/left, away/right alignment
+  - **H2H** — last 5 meetings + win-tally pills
+- `components/intelligence/TeamPicker.tsx` — searchable team selector with click-outside + ESC
+- `app/intelligence/match/page.tsx` + `MatchPredictorView.tsx` — full Match Predictor: two team pickers, animated probability bar, predicted score, confidence pill, key factors. Specific route takes precedence over the dynamic `[slug]` placeholder.
+- `app/leagues/[leagueId]/page.tsx` — SSG'd for all 20 league IDs, hosts the StandingsTable. `/leagues` index page now lists every league as a clickable card.
+- `app/HomeLive.tsx` — pulled the home page's live-strip into a client component fed by TanStack Query so it auto-refreshes without making the whole page client.
+- `components/shared/ApiError.tsx` — designed error state with retry CTA used by all data-driven views.
+- `components/providers/Providers.tsx` — QueryClientProvider with the Phase 7 defaults.
+- Refactored `ScoresView`, `HomePage`, `LeagueDetailView` to fetch via the API + TanStack Query; click any MatchCard or LiveStrip card → opens `MatchDetailSheet`.
+
+**Verified working:**
+- `npx tsc --noEmit` → clean
+- `npx next build` → 24 routes (6 dynamic API routes, 20 SSG league pages, intel/match static, all others static), middleware 25.6 KB
+- Smoke test on dev server (port 3002):
+  - `GET /api/football/live-scores?status=live` → 200, returns 3 live demo matches
+  - `GET /api/football/standings?league=39` → 200, full Premier League table with bands
+  - `GET /api/football/search?q=barcelona` → 200, returns the club + 3 Barcelona players
+  - `GET /api/football/match/1` → 200, full detail with events/stats/lineups/H2H
+  - `POST /api/ml/predict-match {home_id:541, away_id:529}` → 200, "predictedScore":"3-2", confidence 46%
+  - `GET /leagues/39` → 200/19 KB (StandingsTable rendered)
+  - `GET /intelligence/match` → 200/21 KB (Match Predictor rendered)
+
+**Architectural choice — intentional swap point:**
+
+Each `route.ts` has a single `if (isDemoMode)` branch returning seeded data. Phase 2 cutover will replace just the body of that branch with a `fetch` to RapidAPI / Supabase / the FastAPI ML service — the route signature, response envelope (`{ data, demo }`) and Cache-Control header all stay the same. The hooks (`useLiveScores`, `useStandings`, `useMatchDetail`) and components don't change.
+
+Same for `/api/ml/predict-match` — the body branch swaps to a `fetch` to the FastAPI ML service authenticated by `ML_SERVICE_TOKEN`. Until then, `lib/ml/predictor.ts` simulates the same return shape as the bible §9.1 spec (home/draw/away probs, predicted score, confidence, key factors).
+
+**Next session starts here:**
+1. Read `SESSION.md`. Confirm Phase 2 demo data layer is in place.
+2. Decide: keep building intelligence pages (no keys needed) OR provision keys and start cutover.
+3. **If continuing in demo mode:** build the next intelligence pages —
+   - `/intelligence/players` — Player Pulse cluster scatter (custom SVG, 6 named clusters per bible §9.2)
+   - `/intelligence/sentiment` — Sentiment Storm timeline (Recharts AreaChart) + gauges + excitement meter
+   - `/intelligence/tactics` — TacticBoard xG shot map on pitch SVG
+   - `/intelligence/transfer` — Transfer Oracle (predicted value + SHAP-style factor list + comparable players)
+   - `/intelligence/fantasy` — Fantasy IQ optimizer (greedy demo solver, formation pitch view)
+4. **If cutting over:** add `lib/supabase/{client,server,middleware}.ts`, replace the demo branches one route at a time. Apply the schema from bible §6 to Supabase.
+
+---
+
+### Session 1 — 2026-04-30
 
 **Goal:** Read the project bible. Scaffold the Next.js project. Configure dark-only design system. Build a navigable shell so the next session can start filling in real features.
 
@@ -174,6 +241,19 @@ Tick boxes as we go. Sub-items live in PROJECT_Sick-Boy.md §11.
   - [x] Cmd+K (or `/`) opens SearchModal — debounced 300 ms, keyboard navigable, recent searches in localStorage (max 5)
   - [x] NotificationBell popover with unread count, mark-all-read, ESC + outside-click to close
   - [x] PWA manifest + SVG icon registered in metadata
+- [~] **Phase 2** — Live Data Layer & Core Pages *(demo branches in place; real adapters pending keys)*
+  - [x] `/api/football/{live-scores,fixtures,standings,search,match/[id]}` route handlers with bible §10 cache headers
+  - [x] TanStack Query QueryClientProvider with bible-spec defaults
+  - [x] `useLiveScores` (30 s poll) · `useFixtures` · `useMatchDetail` · `useStandings`
+  - [x] Scores page wired to `useFixtures`, click-to-open MatchDetailSheet
+  - [x] MatchDetailSheet (Overview / Stats / Lineups / Events / H2H)
+  - [x] StandingsTable with European spots / relegation bands, form pills, position arrows
+  - [x] Per-league pages SSG'd for all 20 league IDs
+  - [ ] Real RapidAPI adapters in each route (replaces `if (isDemoMode)` branch)
+  - [ ] Club detail page (6 tabs)
+  - [ ] Player detail page
+  - [ ] News feed
+- [~] **Phase 4 (sub-feature only)** — Match Predictor at `/intelligence/match` is fully wired against `/api/ml/predict-match`. The other 5 intelligence sub-pages are still placeholders.
 - [ ] **Phase 2** — Live Data Layer & Core Pages
 - [ ] **Phase 3** — ML Service (FastAPI)
 - [ ] **Phase 4** — Intelligence Hub & ML Pages
@@ -292,10 +372,11 @@ See bible §5 for the full target structure. We're building it incrementally per
 ## 🐛 Known Issues / Tech Debt
 
 - **Demo Supabase shim.** The login flow currently sets a `futology_session` cookie and stores user state in localStorage via Zustand. When the user provides Supabase keys, swap `lib/store/session.ts#signIn` to call `supabase.auth.signInWithOtp` and replace the cookie with the Supabase SSR session cookie. The middleware.ts contract (cookie present = authenticated) is intentionally swap-compatible.
+- **Demo data branches in API routes.** Each handler in `app/api/**` has a single `if (isDemoMode)` branch returning seeded data. Replacing the body of that branch with a `fetch` to RapidAPI / FastAPI is the entire Phase-2/3 cutover for that route. The route signature, response envelope (`{ data, demo }`) and Cache-Control header all stay the same.
+- **PredictionCard demo path on `/predictions`.** Still imports from `lib/data/demoPredictions` directly. Should be migrated to `/api/ml/predict-batch` (POST `[fixture_ids]`) once that endpoint exists.
 - **NotificationBell uses 3 hard-coded notifications.** Replace with a Supabase Realtime subscription on `notifications` table in Phase 5.
-- **PredictionCard / MatchCard / SearchModal read from `lib/data/*` seed data.** Replace those imports with TanStack Query hooks pointed at `/api/football/*` and `/api/ml/predict-match` once Phase 2/3/4 backends exist.
+- **`SearchModal` reads `lib/data/*` directly.** Could be migrated to `/api/football/search` for consistency, but the current local search is already debounced and fast — defer until there's a reason.
 - **Inline Tailwind components stand in for shadcn/ui primitives.** Working fine; decision deferred — install shadcn for the Sheet/Tabs/Dialog primitives in Phase 2 if a feature needs them, otherwise stay custom.
-- **API key cache strategy** is documented in the bible but not yet enforced — there are no API routes yet. Will land with Phase 2's `/api/football/*` routes.
 
 ---
 
