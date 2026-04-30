@@ -107,9 +107,10 @@ Tick boxes as we go. Sub-items live in PROJECT_Sick-Boy.md §11.
   - [x] `globals.css` with live-dot animation, focus rings, Inter font
   - [x] `app/layout.tsx` with Inter, providers, dark `<html>`
   - [x] `.env.example` with every key from §7
-  - [ ] Git initialized + first commit *(running at end of session 1 as per-file commits)*
-  - [ ] Husky + lint-staged + Conventional Commits *(deferred — needs remote)*
-  - [ ] GitHub repo + Actions CI (lint + typecheck + build) *(deferred — needs remote)*
+  - [x] Git initialized + 38 per-file commits (one per file, Conventional Commits)
+  - [x] GitHub repo published: https://github.com/krish2248/futology (public)
+  - [ ] Husky + lint-staged *(deferred — install in Phase 1)*
+  - [ ] GitHub Actions CI (lint + typecheck + build) *(deferred — add in Phase 1)*
   - [ ] Supabase project created, schema applied, `types/database.ts` generated *(blocked on user — no project yet)*
 - [~] **Phase 1** — Auth, Onboarding, Shell *(layout shell done; auth + onboarding pending)*
 - [ ] **Phase 2** — Live Data Layer & Core Pages
@@ -152,7 +153,10 @@ Captured at start of session 1 (2026-04-30):
 - git: 2.52.0.windows.1
 - Project root: `C:\Users\sonik\Desktop\Sick-Boy`
 - Project subfolder: `C:\Users\sonik\Desktop\Sick-Boy\futology` (Next.js app lives here)
-- Git initialized: not yet
+- Git initialized: yes — main branch
+- GitHub: **https://github.com/krish2248/futology** (public)
+- Author identity (local config): `Sonik Krish <sonikrish2248@gmail.com>`
+- Commits in session 1: **38** (one per file, per user direction)
 
 ---
 
