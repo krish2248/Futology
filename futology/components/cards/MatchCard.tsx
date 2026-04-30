@@ -121,14 +121,31 @@ function ScoreOrTime({ match }: { match: DemoMatch }) {
   );
 }
 
-export function LiveStrip({ matches }: { matches: DemoMatch[] }) {
+export function LiveStrip({
+  matches,
+  onSelect,
+}: {
+  matches: DemoMatch[];
+  onSelect?: (match: DemoMatch) => void;
+}) {
   if (matches.length === 0) return null;
   return (
     <div className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="flex snap-x gap-3 pb-2">
         {matches.map((m) => (
           <div key={m.id} className="w-72 shrink-0 snap-start">
-            <MatchCard match={m} variant="compact" />
+            {onSelect ? (
+              <button
+                type="button"
+                onClick={() => onSelect(m)}
+                className="block w-full text-left transition-transform active:scale-[0.99]"
+                aria-label={`Open match details: ${m.homeTeam} vs ${m.awayTeam}`}
+              >
+                <MatchCard match={m} variant="compact" />
+              </button>
+            ) : (
+              <MatchCard match={m} variant="compact" />
+            )}
           </div>
         ))}
       </div>
