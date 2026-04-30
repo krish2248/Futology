@@ -5,12 +5,14 @@ import { Trophy } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Card";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ApiError } from "@/components/shared/ApiError";
 import { MatchCard } from "@/components/cards/MatchCard";
+import { MatchDetailSheet } from "@/components/cards/MatchDetailSheet";
+import { useFixtures } from "@/hooks/useLiveScores";
 import {
-  getDemoMatches,
   matchesByLeague,
-  matchesByStatus,
   type MatchStatus,
+  type DemoMatch,
 } from "@/lib/data/demoMatches";
 import { cn } from "@/lib/utils/cn";
 
@@ -23,20 +25,27 @@ const FILTERS: Array<{ id: MatchStatus | "all"; label: string }> = [
 
 export function ScoresView() {
   const [filter, setFilter] = useState<MatchStatus | "all">("all");
-  const matches = useMemo(() => getDemoMatches(), []);
-  const filtered = useMemo(
-    () => matchesByStatus(matches, filter),
-    [matches, filter],
-  );
-  const grouped = useMemo(() => matchesByLeague(filtered), [filtered]);
+  const [openId, setOpenId] = useState<number | null>(null);
 
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useFixtures({
+      status: filter,
+    });
+
+  const matches = data ?? [];
+  const grouped = useMemo(() => matchesByLeague(matches), [matches]);
   const liveCount = matches.filter((m) => m.status === "live").length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Scores & Fixtures"
-        description="Demo data for now. Phase 2 wires API-Football for live matches."
+        description="Demo data via /api/football. Live tab refreshes every 30 seconds."
+        action={
+          isFetching ? (
+            <span className="text-xs text-text-muted">Refreshing…</span>
+          ) : null
+        }
       />
 
       <Card className="flex flex-wrap items-center gap-2 p-3">
@@ -60,17 +69,19 @@ export function ScoresView() {
               {showLiveDot ? (
                 <span className="live-dot h-1.5 w-1.5" aria-hidden />
               ) : null}
-              {option.id === "all" ? (
-                <span className="tabular ml-1 rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-muted">
-                  {matches.length}
-                </span>
-              ) : null}
             </button>
           );
         })}
       </Card>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <ScoresSkeleton />
+      ) : isError ? (
+        <ApiError
+          message={error instanceof Error ? error.message : "Could not load scores."}
+          onRetry={() => refetch()}
+        />
+      ) : matches.length === 0 ? (
         <EmptyState
           icon={Trophy}
           title="No matches in this filter"
@@ -84,14 +95,44 @@ export function ScoresView() {
                 {league}
               </h2>
               <div className="grid gap-2 md:grid-cols-2">
-                {items.map((m) => (
-                  <MatchCard key={m.id} match={m} />
+                {items.map((m: DemoMatch) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setOpenId(m.id)}
+                    className="text-left transition-transform active:scale-[0.99]"
+                    aria-label={`Open match details: ${m.homeTeam} vs ${m.awayTeam}`}
+                  >
+                    <MatchCard match={m} />
+                  </button>
                 ))}
               </div>
             </section>
           ))}
         </div>
       )}
+
+      <MatchDetailSheet
+        fixtureId={openId}
+        onClose={() => setOpenId(null)}
+      />
+    </div>
+  );
+}
+
+function ScoresSkeleton() {
+  return (
+    <div className="space-y-6">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <section key={i}>
+          <div className="skeleton mb-2 h-4 w-32" />
+          <div className="grid gap-2 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, j) => (
+              <div key={j} className="skeleton h-24" />
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
