@@ -9,14 +9,57 @@
 
 **Phase 0** ✅ shell complete (Supabase + Husky/CI deferred until backend keys exist)
 **Phase 1** ✅ in demo mode — login + onboarding + Cmd+K + middleware. Real Supabase swaps in when keys arrive.
-**Phase 2** ✅ in demo mode — `/api/football/*` routes + TanStack Query + 30 s polling + StandingsTable + MatchDetailSheet (5 tabs) + per-league pages. Real RapidAPI wires in by replacing the demo branch in each route.
-**Phase 4** ✅ in demo mode — all 6 intelligence sub-pages fully built: Match Predictor, Player Pulse (cluster scatter + comparison radar), Sentiment Storm (timeline + gauges + live feed), TacticBoard (xG shot map + pass network), Transfer Oracle (predicted value + SHAP factors), Fantasy IQ (squad optimizer + formation pitch). FastAPI ML service from bible §3 swaps in route-by-route.
+**Phase 2** ✅ in demo mode — `/api/football/*` routes + TanStack Query + 30 s polling + StandingsTable + MatchDetailSheet (now 6 tabs) + per-league pages. Real RapidAPI wires in by replacing the demo branch in each route.
+**Phase 4** ✅ in demo mode — all 6 intelligence sub-pages fully built (Match Predictor, Player Pulse, Sentiment Storm, TacticBoard, Transfer Oracle, Fantasy IQ).
+**Phase 5** ✅ in demo mode — full prediction game loop: prediction form with score picker, auto-settlement on finished fixtures (3/1/0 points), 4-tab predictions hub (AI / Mine / Leagues / Community), league create/join/leaderboard, public leagues, community polls with vote-once, trending picks, accuracy leaders, real notifications wired through the store.
 
-Next session resumes: ask user for keys (Supabase, API-Football, Reddit, etc.), then swap demo branches for real adapters one route at a time. The whole front-end is fully demoable as-is.
+Next session resumes: provision keys, then swap demo branches for real adapters one route at a time. Or build Phase 6 (wishlist) and Phase 7 (PWA polish, demo seed bundles, deploy). The whole front-end is demoable as-is.
 
 ---
 
 ## 📅 Session History
+
+### Session 3 — 2026-05-01 (continued, second batch)
+
+**Goal:** Stand up the full predictions game loop end-to-end. Make a prediction → auto-settle when the match finishes → climb the leaderboard. All in demo mode against the Zustand store; structured so the Supabase swap is one-to-one with bible §6.
+
+**Built:**
+- Extended `lib/store/session.ts` to v2 with predictions, leagues, poll votes and notifications. Includes `migrate` step so existing v1 sessions don't lose their followed lists.
+- `components/predictions/ScoresPicker.tsx` — big-button score picker with 0–9 clamp.
+- `components/predictions/PredictionForm.tsx` — used both inline (in the sheet's Predict tab) and reusable. ML hint chip, confetti on save, locks after kickoff.
+- New 6th tab in `MatchDetailSheet`: **Predict**. Pre-fills with existing prediction.
+- `components/predictions/MyPredictions.tsx` — auto-settlement effect, upcoming/settled split, edit-via-sheet, +3/+1/0 colored result indicator.
+- `components/predictions/PredictionLeagues.tsx` — Create / Join modals, public-leagues seed, league detail with full leaderboard, copy-invite, leave-league.
+- `components/predictions/CommunityTab.tsx` — 3 polls with vote-once and animated bar fills, trending predictions, accuracy leaders.
+- `lib/data/demoLeagues.ts` — 3 seeded public leagues (Global, EPL Picks, UCL Bracket) with synthetic member rosters.
+- `lib/data/demoCommunity.ts` — polls (EPL winner / UCL winner / Ballon d'Or) + 3 trending picks + 10 accuracy leaders.
+- Updated `PredictionCard` (AI tab): "Use this prediction" now actually saves to the user's store, with confetti and "Saved"/"Update from ML" states.
+- Updated `NotificationBell` to consume the real store notifications, with seed fallback when empty and a real `mark all read`.
+
+**Verified working:**
+- `npx tsc --noEmit` → clean
+- `npx next build` → all routes still build (predictions: 12.5 KB / 167 KB FLJS, the heaviest page in the app — includes the sheet, leagues UI, polls)
+- Smoke test on dev server (3004): `/predictions` → 200/50 KB. Match detail API confirms fixture #4 is `finished` with `2-1` so auto-settlement has a real input to test against.
+
+**Architecture: settlement contract**
+
+Auto-settlement happens in `MyPredictions` via a `useEffect` over `useFixtures()`. When a fixture transitions to `finished`, the store's `settlePrediction({ fixtureId, actualHomeScore, actualAwayScore })` runs and:
+1. Computes points (3 = exact, 1 = correct winner, 0 = miss)
+2. Marks the prediction settled
+3. Pushes a `prediction_settled` notification
+4. `queueMicrotask`s a `recomputeLeagueStats()` so leaderboards update.
+
+Phase 5 cutover for settlement just replaces the trigger: instead of running on render, a Supabase Edge Function runs on a cron, polling finished fixtures from API-Football and updating the `predictions` and `prediction_league_members` tables. The 3/1/0 logic is identical — currently lives in `pointsFor` in `lib/store/session.ts` and can be lifted as-is.
+
+**Next session starts here:**
+1. Read `SESSION.md`. The full app is now a working demo end-to-end.
+2. Decide between three reasonable next moves:
+   - **(a) Begin Supabase cutover** — install `@supabase/ssr`, apply schema, swap auth + persistence one piece at a time. Start with auth (`signIn` → `signInWithOtp`), then move to predictions (Zustand → Supabase tables with RLS).
+   - **(b) Build Phase 6 wishlist features** — Match Momentum (rolling xG), Referee Bias Analyzer, Weather Impact Model, Press Intensity Heatmap, Tournament Simulator, Injury Intelligence, Odds Movement Alerts.
+   - **(c) Build Phase 7 polish** — proper PWA service worker via `next-pwa`, demo-mode seed bundles, Lighthouse audit pass, Playwright smoke E2E, deploy script.
+3. Whatever the choice, the demo→real swap is a one-line change inside each `route.ts` and inside `signIn`/`middleware.ts` — the rest of the app is contract-stable.
+
+---
 
 ### Session 2 — 2026-05-01
 
@@ -282,7 +325,17 @@ Tick boxes as we go. Sub-items live in PROJECT_Sick-Boy.md §11.
   - [x] **TacticBoard** at `/intelligence/tactics` — accurate-proportion football pitch SVG (105 m × 68 m), xG shot dots (size = xG, color = goal/saved/off/blocked), Shots ↔ Passes view toggle, pass-network nodes/edges, Sidebar with xG, PPDA, possession, field tilt, pass accuracy.
   - [x] **Transfer Oracle** at `/intelligence/transfer` — player picker, predicted EUR value with 80% confidence band, top SHAP-style factors (positive accent, negative live-red bars), 3 nearest-neighbour comparable players.
   - [x] **Fantasy IQ** at `/intelligence/fantasy` — budget slider (£80–£105M), 5 formation choices, safe/balanced/bold risk, greedy demo solver respecting bible constraints (15 players, 2 GK / 5 DEF / 5 MID / 3 FWD, max 3 per club, budget cap), formation pitch view with gold captain armband, bench list, differential picks, copy-to-clipboard squad export.
-- [ ] **Phase 5** — Predictions, Profile, Notifications *(predictions & profile shells done in demo mode; settlement + leagues + community polls + email notifications outstanding)*
+- [x] **Phase 5** — Predictions, Profile, Notifications *(in demo mode — Resend email digest is the only outstanding piece)*
+  - [x] Session store extended (`lib/store/session.ts` v2) with `predictions[]`, `predictionLeagues[]`, `pollVotes[]`, `notifications[]` mirroring bible §6 schema; persist `migrate` step keeps existing users.
+  - [x] `ScoresPicker` component (44 px tap targets, +/- buttons, 0–9 clamp).
+  - [x] `PredictionForm` with ML hint chip, confetti on save, edit/delete after save, locked once kickoff passes.
+  - [x] **Predict** tab inside `MatchDetailSheet` — pre-fills with the user's existing prediction; locks for live/finished matches.
+  - [x] **My Predictions** view: stats row (total / accuracy / points / streak), upcoming (editable via the sheet), settled (result, points colored gold/green/grey, exact-vs-winner-vs-miss label).
+  - [x] **Auto-settlement**: when `useFixtures` returns a `finished` match that the user has predicted, the store auto-settles (3/1/0 points) and emits a `prediction_settled` notification.
+  - [x] **Prediction Leagues**: My Leagues / public leagues, Create modal (name + description + public toggle, auto-generates 8-char invite code), Join-by-code modal with success/error states, league detail with leaderboard table (rank arrows, your row highlighted, gold crown for #1), copy invite, leave league.
+  - [x] **Community polls**: 3 active polls with vote-once, per-option progress bar fill animated by vote count, anonymous accuracy-leaders table, trending-predictions cards.
+  - [x] **NotificationBell** now reads from the store's `notifications[]` (with seed fallback when empty); mark-all-read writes through to the store; unread badge shows real count.
+  - [ ] Resend email digest *(Phase 5 cutover with API key)*
 - [ ] **Phase 6** — Bonus / Wishlist Features
 - [ ] **Phase 7** — Polish, Performance, Deploy
 - [ ] **Phase 2** — Live Data Layer & Core Pages
