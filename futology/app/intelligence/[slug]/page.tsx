@@ -8,11 +8,21 @@ import { EmptyState } from "@/components/shared/EmptyState";
 
 type Params = { slug: string };
 
-// "match" has its own static route; only generate placeholders for the rest.
+const STATICALLY_BUILT = new Set([
+  "match",
+  "players",
+  "sentiment",
+  "tactics",
+  "transfer",
+  "fantasy",
+]);
+
+// Slugs in STATICALLY_BUILT have their own routes; this dynamic route only
+// generates placeholders for the rest.
 export function generateStaticParams(): Params[] {
-  return INTEL_FEATURES.filter((f) => f.slug !== "match").map((feature) => ({
-    slug: feature.slug,
-  }));
+  return INTEL_FEATURES.filter((f) => !STATICALLY_BUILT.has(f.slug)).map(
+    (feature) => ({ slug: feature.slug }),
+  );
 }
 
 export function generateMetadata({
