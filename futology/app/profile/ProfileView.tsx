@@ -131,21 +131,26 @@ export function ProfileView() {
         </div>
       </section>
 
-      <Card className="flex items-start gap-3">
-        <div
-          aria-hidden
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-bg-elevated text-text-secondary"
-        >
-          <Settings className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="font-medium">Settings</p>
-          <p className="mt-1 text-sm text-text-secondary">
-            Notification preferences, account, theme (locked to dark) — wires up
-            in Phase 5.
-          </p>
-        </div>
-      </Card>
+      <Link href="/profile/settings" className="block">
+        <Card hover className="flex items-start gap-3">
+          <div
+            aria-hidden
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-bg-elevated text-text-secondary"
+          >
+            <Settings className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">Settings</p>
+            <p className="mt-1 text-sm text-text-secondary">
+              Notification preferences, email, theme (always dark), reset demo
+              session.
+            </p>
+          </div>
+          <span aria-hidden className="self-center text-text-muted">
+            →
+          </span>
+        </Card>
+      </Link>
     </div>
   );
 }
