@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ChevronDown } from "lucide-react";
+import confetti from "canvas-confetti";
+import { Sparkles, ChevronDown, CheckCircle2 } from "lucide-react";
 import type { DemoPrediction } from "@/lib/data/demoPredictions";
 import { WinProbabilityBar } from "./WinProbabilityBar";
+import { useSession } from "@/lib/store/session";
 import {
   formatKickoff,
   formatRelativeMinute,
@@ -17,8 +19,43 @@ type Props = {
 
 export function PredictionCard({ prediction, className }: Props) {
   const [open, setOpen] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const upsertPrediction = useSession((s) => s.upsertPrediction);
+  const existing = useSession((s) =>
+    s.predictions.find((p) => p.fixtureId === prediction.fixtureId),
+  );
   const m = prediction.match;
   const isLive = m.status === "live";
+  const justSaved = savedAt !== null && Date.now() - savedAt < 2500;
+  const isLocked = m.status !== "scheduled";
+
+  function parseScore(): { home: number; away: number } {
+    const match = prediction.predictedScore.match(/(\d+)\s*-\s*(\d+)/);
+    if (match) return { home: Number(match[1]), away: Number(match[2]) };
+    return { home: 1, away: 1 };
+  }
+
+  function save() {
+    if (isLocked) return;
+    const { home, away } = parseScore();
+    upsertPrediction({
+      fixtureId: m.id,
+      homeTeam: m.homeTeam,
+      awayTeam: m.awayTeam,
+      matchDate: m.kickoff,
+      predictedHomeScore: home,
+      predictedAwayScore: away,
+      mlSuggestedWinner: prediction.predictedWinner,
+      mlConfidence: prediction.confidence,
+    });
+    void confetti({
+      particleCount: 60,
+      spread: 60,
+      origin: { y: 0.7 },
+      colors: ["#00D563", "#FFD700"],
+    });
+    setSavedAt(Date.now());
+  }
 
   return (
     <article
@@ -118,16 +155,30 @@ export function PredictionCard({ prediction, className }: Props) {
       <div className="mt-4 flex items-center gap-2">
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-bg-primary transition-colors hover:bg-accent-hover"
+          onClick={save}
+          disabled={isLocked}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-bg-primary transition-colors hover:bg-accent-hover",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+          )}
         >
-          Use this prediction
+          {justSaved ? (
+            <>
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Saved
+            </>
+          ) : existing ? (
+            "Update from ML"
+          ) : (
+            "Use this prediction"
+          )}
         </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent/40 hover:text-text-primary"
-        >
-          Save
-        </button>
+        {existing ? (
+          <span className="text-[11px] text-text-muted">
+            Yours: {existing.predictedHomeScore}–{existing.predictedAwayScore}
+          </span>
+        ) : isLocked ? (
+          <span className="text-[11px] text-text-muted">Locked at kickoff</span>
+        ) : null}
       </div>
     </article>
   );
