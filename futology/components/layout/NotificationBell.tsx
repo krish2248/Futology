@@ -1,47 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, type AppNotification } from "@/lib/store/session";
+import { useIsClient } from "@/hooks/useHydratedSession";
 import { cn } from "@/lib/utils/cn";
 
-type DemoNotification = {
-  id: string;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-};
-
-const SEED: DemoNotification[] = [
+const SEED_FALLBACK: AppNotification[] = [
   {
-    id: "n1",
-    title: "Match starting soon",
-    body: "Manchester United vs Liverpool kicks off in 15 minutes.",
-    time: "Just now",
-    read: false,
-  },
-  {
-    id: "n2",
-    title: "AI prediction ready",
-    body: "Real Madrid vs Barcelona — predicted 2-1 (54% confidence).",
-    time: "12 min ago",
-    read: false,
-  },
-  {
-    id: "n3",
+    id: "seed_welcome",
+    type: "match_start",
     title: "Welcome to FUTOLOGY",
-    body: "Real notifications wire up via Supabase Realtime in Phase 5.",
-    time: "2 hr ago",
-    read: true,
+    body: "Settle a match prediction and your notifications will arrive here.",
+    isRead: false,
+    createdAt: new Date().toISOString(),
   },
 ];
 
 export function NotificationBell() {
+  const ready = useIsClient();
+  const stored = useSession((s) => s.notifications);
+  const markAllNotificationsRead = useSession((s) => s.markAllNotificationsRead);
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(SEED);
   const containerRef = useRef<HTMLDivElement>(null);
-  const unread = items.filter((n) => !n.read).length;
+
+  const items = useMemo<AppNotification[]>(
+    () => (stored.length > 0 ? stored : SEED_FALLBACK),
+    [stored],
+  );
+  const unread = ready ? items.filter((n) => !n.isRead).length : 0;
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -64,10 +52,6 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  function markAllRead() {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
-
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -87,7 +71,7 @@ export function NotificationBell() {
             aria-hidden
             className="tabular absolute -right-0.5 -top-0.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg-primary"
           >
-            {unread}
+            {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
       </button>
@@ -108,7 +92,7 @@ export function NotificationBell() {
               {unread > 0 ? (
                 <button
                   type="button"
-                  onClick={markAllRead}
+                  onClick={() => markAllNotificationsRead()}
                   className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-bg-raised hover:text-text-primary"
                 >
                   <Check className="h-3 w-3" aria-hidden /> Mark all read
@@ -126,17 +110,20 @@ export function NotificationBell() {
                     key={n.id}
                     className={cn(
                       "border-b border-border px-4 py-3 last:border-b-0",
-                      !n.read && "bg-accent-muted/30",
+                      !n.isRead && "bg-accent-muted/30",
                     )}
                   >
                     <div className="flex items-start gap-2">
-                      {!n.read ? (
+                      {!n.isRead ? (
                         <span
                           aria-hidden
                           className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
                         />
                       ) : (
-                        <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0" />
+                        <span
+                          aria-hidden
+                          className="mt-1.5 h-1.5 w-1.5 shrink-0"
+                        />
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{n.title}</p>
@@ -144,7 +131,7 @@ export function NotificationBell() {
                           {n.body}
                         </p>
                         <p className="mt-1 text-[11px] text-text-muted">
-                          {n.time}
+                          {timeAgo(n.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -153,11 +140,19 @@ export function NotificationBell() {
               )}
             </ul>
             <div className="border-t border-border px-4 py-2 text-center text-[11px] text-text-muted">
-              Realtime via Supabase wires up in Phase 5
+              Realtime via Supabase wires up in cutover
             </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
     </div>
   );
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return "Just now";
+  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} min ago`;
+  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} hr ago`;
+  return `${Math.floor(ms / 86_400_000)} d ago`;
 }
