@@ -15,6 +15,7 @@ import {
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Card";
 import { StatTile } from "@/components/shared/StatTile";
+import { ProfileSkeleton } from "@/components/shared/ProfileSkeleton";
 import { useSession } from "@/lib/store/session";
 import { useIsClient } from "@/hooks/useHydratedSession";
 
@@ -31,6 +32,10 @@ export function ProfileView() {
   function handleSignOut() {
     signOut();
     router.push("/login");
+  }
+
+  if (!ready) {
+    return <ProfileSkeleton />;
   }
 
   return (
