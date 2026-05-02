@@ -3,14 +3,13 @@ import {
   Trophy,
   Target,
   Brain,
-  Newspaper,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/shared/Card";
 import { StatTile } from "@/components/shared/StatTile";
-import { PageHeader } from "@/components/shared/PageHeader";
 import { HomeLive } from "./HomeLive";
+import { HomeNews } from "./HomeNews";
 
 const QUICK_LINKS = [
   {
@@ -118,27 +117,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section>
-        <PageHeader
-          title="News"
-          description="Filtered to your followed teams once you're signed in."
-        />
-        <Card className="flex items-start gap-3">
-          <div
-            aria-hidden
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-bg-elevated text-text-secondary"
-          >
-            <Newspaper className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-medium">News feed will appear here</p>
-            <p className="mt-1 text-sm text-text-secondary">
-              We&apos;ll wire NewsAPI in Phase 2 and personalize it to the
-              leagues, clubs and players you follow.
-            </p>
-          </div>
-        </Card>
-      </section>
+      <HomeNews />
     </div>
   );
 }
