@@ -4,6 +4,10 @@
 
 The definitive football intelligence platform — live scores, ML-powered match prediction, player playing-style clusters, live community sentiment, tactical breakdowns, transfer-value prediction and fantasy squad optimization. One unified dark interface, one URL, one login.
 
+**🚀 Live demo:** **https://krish2248.github.io/futology/**
+
+The demo runs against deterministic seed data so every feature works without backend keys. Deploy is automated from `main` via GitHub Actions (`.github/workflows/deploy.yml`).
+
 ## Repository layout
 
 - **[`PROJECT_Sick-Boy.md`](./PROJECT_Sick-Boy.md)** — the project bible. Vision, complete feature set, tech stack, design system, database schema, env vars, ML model specs, API routes, phased build plan, and definition of done.
@@ -30,6 +34,14 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Build the GH Pages static export locally
+
+```bash
+cd futology
+npm run build:export
+npx serve out
+```
 
 ## Build phases
 
