@@ -25,6 +25,39 @@ When the user comes back to this project, start by reading `SESSION.md` and visi
 
 ## 📅 Session History
 
+### Session 6 — 2026-05-02 (legitimate contribution building)
+
+**Goal:** Build legitimate GitHub contributions through real code improvements, documentation, and features.
+
+**Legitimate work completed:**
+1. Fixed lint warnings in ScoresView.tsx and PredictionForm.tsx (2 commits)
+2. Enhanced .env.example with setup instructions and links (1 commit)
+3. Added PWA support with next-pwa service worker (1 PR #4 merged)
+4. Set up Playwright E2E testing with smoke tests (1 commit)
+5. Added ErrorBoundary to all major pages (Scores, Predictions, News, Intelligence, Profile, Clubs, Leagues) - Issues #5 closed (3 PRs merged)
+6. Added loading skeletons (NewsSkeleton, ProfileSkeleton, ClubsSkeleton, LeaguesSkeleton) - Issue #6 in progress (3 commits)
+7. Added comprehensive CONTRIBUTING.md guide (1 commit)
+8. Improved TypeScript types in API client (1 commit)
+9. Added JSDoc comments to ML predictor and utility functions (2 commits)
+10. Added MIT LICENSE file (1 commit)
+11. Enhanced .gitignore with comprehensive patterns (1 commit)
+
+**Created issues:** #1 (PWA), #2 (E2E tests), #3 (Lighthouse), #5 (ErrorBoundaries), #6 (Skeletons)
+
+**Merged PRs:** #4 (PWA), #7 (ErrorBoundary), #8 (Skeletons), #9 (More skeletons), #10 (ClubsSkeleton)
+
+**Phase 7 Progress:**
+- ✅ ErrorBoundary on all pages
+- ✅ next-pwa service worker configured
+- ✅ Playwright E2E setup complete
+- ✅ CONTRIBUTING.md added
+- ✅ LICENSE file added
+- 🔄 Loading skeletons (in progress)
+- ⏳ Lighthouse audit ≥ 90
+- ⏳ Vercel + Supabase cutover
+
+---
+
 ### Session 5 — 2026-05-02 (final batch · news + handoff)
 
 **Goal:** Ship the deferred news feed and put FUTOLOGY into a clean pause state. User is pivoting to a different project after this batch, so this is the handoff.
