@@ -5,23 +5,67 @@
 
 ---
 
-## 🎯 Current Phase
+## 🎯 Project status — PAUSED for now (user pivoting to a different project)
 
-**LIVE:** **https://krish2248.github.io/futology/** (GitHub Pages, auto-deploys from main via Actions)
+**LIVE:** **https://krish2248.github.io/futology/** (GitHub Pages · auto-deploys from `main` via `.github/workflows/deploy.yml`)
+
+The whole front-end is demoable end-to-end. A future session can resume from here without ramp-up.
 
 **Phase 0** ✅ shell complete
 **Phase 1** ✅ demo-mode login + onboarding + Cmd+K. (Middleware was replaced by client-side `AuthGate` to support static export.)
-**Phase 2** ✅ demo-mode data layer + StandingsTable + MatchDetailSheet (6 tabs) + per-league pages + per-club pages (6 tabs) + per-player pages. (API routes deleted; `lib/api/client.ts` calls demo data directly. Real RapidAPI re-introduced when we cut over to Vercel + Supabase.)
+**Phase 2** ✅ demo-mode data layer + StandingsTable + MatchDetailSheet (6 tabs) + per-league pages + per-club pages (6 tabs) + per-player pages + **news feed**. (API routes deleted; `lib/api/client.ts` calls demo data directly. Real RapidAPI re-introduced when we cut over to Vercel + Supabase.)
 **Phase 4** ✅ all 6 intelligence sub-pages
 **Phase 5** ✅ full prediction game loop, leagues, polls, leaders, notifications
-**Phase 6** ✅ all 7 wishlist features now built (Tournament Simulator, Match Momentum, Press Intensity, Referee Bias, Weather Impact, Injury Intelligence, Odds Movement Alerts)
-**Phase 7** ⏳ partial — ErrorBoundary, Settings, dark-lock indicator, **GitHub Pages deploy with auto-CI workflow** ✅. Service worker + Lighthouse audit + Playwright E2E still outstanding.
+**Phase 6** ✅ all 7 wishlist features (Tournament Simulator, Match Momentum, Press Intensity, Referee Bias, Weather Impact, Injury Intelligence, Odds Movement Alerts)
+**Phase 7** ⏳ partial — ErrorBoundary, Settings, dark-lock indicator, **GitHub Pages deploy with auto-CI workflow** ✅. Outstanding: `next-pwa` service worker, Playwright smoke E2E (login → predict → settle → leaderboard), Lighthouse audit ≥ 90, Vercel + Supabase cutover.
 
-Next session resumes: build the News feed (deferred this session), then either pick up the Phase 7 service worker/E2E, or begin the Supabase cutover (would need a separate Vercel deployment since static-export GH Pages can't host Supabase Auth).
+When the user comes back to this project, start by reading `SESSION.md` and visiting the live URL. The "Next session starts here" block below has the playbook.
 
 ---
 
 ## 📅 Session History
+
+### Session 5 — 2026-05-02 (final batch · news + handoff)
+
+**Goal:** Ship the deferred news feed and put FUTOLOGY into a clean pause state. User is pivoting to a different project after this batch, so this is the handoff.
+
+**Built:**
+- `lib/data/demoNews.ts` — 18 seeded news items across 5 categories (transfers / match / analysis / injuries / tactics). Each item maps to related clubs / players / leagues so the home page can personalize. Helpers: `filterByCategory`, `isPersonalized`, `rankPersonalized`.
+- `components/cards/NewsCard.tsx` — category badge with per-category accent color, "For you" pill when personalized, time-ago formatting.
+- `app/news/page.tsx` + `NewsView.tsx` — full news page with category filter chips and an Everything / "For you · N" scope toggle. The For-you toggle is disabled when nothing matches.
+- `app/HomeNews.tsx` — client component that ranks personalized items first, then shows top 6 on the home page.
+- `app/page.tsx` — replaced the "News feed will appear here" placeholder with `<HomeNews />`. Description swaps based on whether the user follows anything.
+
+**Verified:**
+- `npx tsc --noEmit` ✓ clean
+- `npm run build:export` ✓ — `/news/index.html` written under `out/`
+- Live at `https://krish2248.github.io/futology/news/` after this push.
+
+**FUTOLOGY status when paused:**
+
+| Surface | State |
+|---|---|
+| Live URL | https://krish2248.github.io/futology/ |
+| Repo | https://github.com/krish2248/futology (public) |
+| Auto-deploy | `main` push → GH Actions → Pages |
+| Total commits | ~180 (one per file/change, Conventional Commits, `sonikrish2248@gmail.com`) |
+| TypeScript | strict, clean |
+| Build | static export, ~80 prerendered pages |
+| Bundle | 87 KB shared FLJS, predictions heaviest at 170 KB |
+| Phases done | 0, 1, 4, 5, 6 (in demo mode) + Phase 2 detail pages + Phase 7 polish slice + GH Pages deploy |
+| Phases outstanding | Real Supabase + RapidAPI cutover (Phases 2 & 3 backends), service worker, Playwright E2E, Lighthouse audit |
+
+**Next session starts here (when picking FUTOLOGY back up):**
+
+1. Read this file, then visit https://krish2248.github.io/futology/ to see current state.
+2. Decide direction:
+   - **(a) Real-services cutover** — install `@supabase/ssr`, apply schema from bible §6, set up Vercel deployment (separate from GH Pages so the live demo stays). Add `output: 'export'` only when `NEXT_OUTPUT=export`. Replace AuthGate + lib/api/client demo branches with real fetches. The GH Pages site stays as the public demo; Vercel becomes the authenticated production target.
+   - **(b) Phase 7 polish** — `next-pwa` service worker for offline cache, Playwright smoke E2E (login → predict → settle → leaderboard), Lighthouse audit ≥ 90, bundle analysis pass.
+   - **(c) Phase 3 ML service** — start the Python FastAPI service per bible §3 / §9 (XGBoost training, SHAP, sentiment pipeline). Decoupled from the front-end.
+
+3. Demo cookie design swaps cleanly to Supabase: replace `signIn` in `lib/store/session.ts` with `supabase.auth.signInWithOtp`, keep the same store shape. Replace AuthGate's `useSession.user` check with `supabase.auth.getUser()`.
+
+---
 
 ### Session 5 — 2026-05-02 (continued)
 
