@@ -3,6 +3,9 @@ import {
   Crown,
   CloudRain,
   Gavel,
+  Flame,
+  Stethoscope,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +38,15 @@ export const EXTRA_FEATURES: readonly ExtraFeature[] = [
     status: "ready",
   },
   {
+    slug: "press-intensity",
+    title: "Press Intensity",
+    tagline: "PPDA · pitch heatmap",
+    description:
+      "PPDA per team and a pitch heatmap of where they apply pressure. Drill into any club to see their pressing style.",
+    icon: Flame,
+    status: "ready",
+  },
+  {
     slug: "referee-bias",
     title: "Referee Bias",
     tagline: "Cards · big-game effect",
@@ -50,6 +62,24 @@ export const EXTRA_FEATURES: readonly ExtraFeature[] = [
     description:
       "Home-win rate split by weather: rain / heat / wind / clear. Filter by league and competition tier.",
     icon: CloudRain,
+    status: "ready",
+  },
+  {
+    slug: "injuries",
+    title: "Injury Intelligence",
+    tagline: "Squad · predicted impact",
+    description:
+      "Per-team injury list with predicted impact on goals/90 and clean-sheet probability, sorted by overall hit.",
+    icon: Stethoscope,
+    status: "ready",
+  },
+  {
+    slug: "odds",
+    title: "Odds Movement",
+    tagline: "Implied prob shifts",
+    description:
+      "Opening vs current odds across upcoming and live fixtures. Implied-probability swings ≥ 12 pp escalate to alerts.",
+    icon: AlertCircle,
     status: "ready",
   },
 ] as const;
