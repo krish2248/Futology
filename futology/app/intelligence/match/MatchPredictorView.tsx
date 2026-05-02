@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Card";
 import { ApiError } from "@/components/shared/ApiError";
 import type { ClubSeed } from "@/lib/data/clubs";
-import type { MatchPredictionResult } from "@/lib/ml/predictor";
+import { predictMatch, type MatchPredictionResult } from "@/lib/ml/predictor";
 import { cn } from "@/lib/utils/cn";
 
 export function MatchPredictorView() {
@@ -28,23 +28,15 @@ export function MatchPredictorView() {
   function generate() {
     if (!home || !away) return;
     setError(null);
-    startTransition(async () => {
+    startTransition(() => {
       try {
-        const res = await fetch("/api/ml/predict-match", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            home_id: home.id,
-            away_id: away.id,
-            competition_id: home.leagueId,
-          }),
+        const res = predictMatch({
+          home,
+          away,
+          competitionId: home.leagueId,
         });
-        if (!res.ok) {
-          const body = (await res.json()) as { error?: string };
-          throw new Error(body?.error ?? `Prediction failed (${res.status})`);
-        }
-        const body = (await res.json()) as { data: MatchPredictionResult };
-        setResult(body.data);
+        // Tiny delay so the loading state reads
+        setTimeout(() => setResult(res), 220);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not generate prediction.");
       }
