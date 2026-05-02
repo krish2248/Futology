@@ -176,6 +176,12 @@ function PlayerDetailPanel({ player }: { player: PlayerStatLine | null }) {
         <p className="text-sm text-text-secondary">
           {player.team} · {player.position}
         </p>
+        <Link
+          href={`/players/${player.playerId}`}
+          className="mt-2 inline-flex text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+        >
+          Open full profile →
+        </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center text-xs">
