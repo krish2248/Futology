@@ -5,6 +5,7 @@ import { ArrowRight, Shield } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Card";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ClubsSkeleton } from "@/components/shared/ClubsSkeleton";
 import { CLUBS, CLUB_QUICK_PICKS } from "@/lib/data/clubs";
 import { findLeague } from "@/lib/data/leagues";
 import { useSession } from "@/lib/store/session";
@@ -19,6 +20,18 @@ export function ClubsView() {
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   const popular = CLUBS.filter((c) => CLUB_QUICK_PICKS.includes(c.id));
+
+  if (!ready) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Clubs"
+          description="Loading..."
+        />
+        <ClubsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
