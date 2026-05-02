@@ -5,10 +5,26 @@ import { LEAGUES } from "@/lib/data/leagues";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/shared/Card";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { LeaguesSkeleton } from "@/components/shared/LeaguesSkeleton";
+import { useIsClient } from "@/hooks/useHydratedSession";
 
 export const metadata: Metadata = { title: "Leagues" };
 
 export default function LeaguesPage() {
+  const ready = useIsClient();
+  
+  if (!ready) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Leagues"
+          description="Loading..."
+        />
+        <LeaguesSkeleton />
+      </div>
+    );
+  }
+  
   return (
     <ErrorBoundary>
     <div className="space-y-6">
