@@ -17,6 +17,11 @@ export type MatchPredictionResult = {
   keyFactors: string[];
 };
 
+/**
+ * Seeded pseudo-random number generator (Lehmer RNG).
+ * @param seed - Seed value for reproducible randomness
+ * @returns Function that returns next random number between 0 and 1
+ */
 function seeded(seed: number) {
   let s = seed % 4294967296;
   if (s < 0) s += 4294967296;
@@ -39,6 +44,12 @@ const FACTOR_TEMPLATES = (home: string, away: string, league: string): string[] 
   `Wet forecast favors the more direct attack — ${home}'s xG-on-counter is league-best.`,
 ];
 
+/**
+ * Generate ML match prediction with probabilities and key factors.
+ * Uses seeded RNG for deterministic results in demo mode.
+ * @param inputs - Match details (home team, away team, competition)
+ * @returns Prediction result with win probabilities, score, confidence, factors
+ */
 export function predictMatch(
   inputs: MatchPredictionInputs,
 ): MatchPredictionResult {
