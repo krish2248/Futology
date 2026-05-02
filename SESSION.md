@@ -7,19 +7,80 @@
 
 ## 🎯 Current Phase
 
-**Phase 0** ✅ shell complete (Supabase + Husky/CI deferred until backend keys exist)
-**Phase 1** ✅ in demo mode — login + onboarding + Cmd+K + middleware
-**Phase 2** ✅ in demo mode — `/api/football/*` routes + TanStack Query + 30 s polling + StandingsTable + MatchDetailSheet (6 tabs) + per-league pages
-**Phase 4** ✅ in demo mode — all 6 intelligence sub-pages fully built
-**Phase 5** ✅ in demo mode — full prediction game loop, 4-tab predictions hub, leagues, polls, accuracy leaders, real notifications
-**Phase 6** ✅ in demo mode — 4 marquee wishlist features: Tournament Simulator (Monte Carlo), Match Momentum (rolling 5-min xG), Referee Bias (big-game effect), Weather Impact
-**Phase 7** ⏳ partial — top-level ErrorBoundary, Settings page with notification toggles + email toggle + reset session, dark-mode-locked indicator. Service worker + Lighthouse audit + Playwright E2E + deploy script still outstanding.
+**LIVE:** **https://krish2248.github.io/futology/** (GitHub Pages, auto-deploys from main via Actions)
 
-Next session resumes: provision Supabase + RapidAPI keys to begin cutover, OR finish Phase 7 (next-pwa service worker, Playwright smoke flow, deploy to Vercel + Railway). 3 wishlist features still in the queue: Press Intensity, Injury Intelligence, Odds Movement Alerts.
+**Phase 0** ✅ shell complete
+**Phase 1** ✅ demo-mode login + onboarding + Cmd+K. (Middleware was replaced by client-side `AuthGate` to support static export.)
+**Phase 2** ✅ demo-mode data layer + StandingsTable + MatchDetailSheet (6 tabs) + per-league pages + per-club pages (6 tabs) + per-player pages. (API routes deleted; `lib/api/client.ts` calls demo data directly. Real RapidAPI re-introduced when we cut over to Vercel + Supabase.)
+**Phase 4** ✅ all 6 intelligence sub-pages
+**Phase 5** ✅ full prediction game loop, leagues, polls, leaders, notifications
+**Phase 6** ✅ all 7 wishlist features now built (Tournament Simulator, Match Momentum, Press Intensity, Referee Bias, Weather Impact, Injury Intelligence, Odds Movement Alerts)
+**Phase 7** ⏳ partial — ErrorBoundary, Settings, dark-lock indicator, **GitHub Pages deploy with auto-CI workflow** ✅. Service worker + Lighthouse audit + Playwright E2E still outstanding.
+
+Next session resumes: build the News feed (deferred this session), then either pick up the Phase 7 service worker/E2E, or begin the Supabase cutover (would need a separate Vercel deployment since static-export GH Pages can't host Supabase Auth).
 
 ---
 
 ## 📅 Session History
+
+### Session 5 — 2026-05-02 (continued)
+
+**Goal:** Finish the remaining 3 Phase 6 wishlist features, ship the missing Phase 2 deep pages (Player + Club), and **make this live on GitHub Pages**. The user explicitly asked for the deploy mid-batch, so the static-export refactor took priority over the news feed (deferred to next session).
+
+**Built:**
+
+*Phase 6 final 3 wishlist features at `/intelligence/extras/*`*
+- **Press Intensity** at `/intelligence/extras/press-intensity` — `lib/data/demoPress.ts` synthesizes per-team PPDA + 12×8 pressure heatmap weighted to high/mid/low blocks. UI: zone filter chips (high/mid/low), sortable list, click any team to see their heatmap on the pitch SVG. Stat tiles for league avg PPDA + most aggressive presser.
+- **Injury Intelligence** at `/intelligence/extras/injuries` — `lib/data/demoInjuries.ts` builds 0–4 injuries per team across 14 positions with severity tiers (minor/moderate/major) and per-90 contribution loss. UI: team list sorted by total impact; per-team panel shows goals impact, defense impact, clean-sheet probability delta, full injury list with expected return date.
+- **Odds Movement Alerts** at `/intelligence/extras/odds` — `lib/data/demoOdds.ts` generates opening + current odds per upcoming/live fixture across 5 bookmakers, with severity escalation when implied probability shifts ≥ 12 pp. UI: severity filter (all/alert/watch/info), per-row 3-column odds card highlighting which outcome the line drifted to, alert messages.
+
+*Phase 2 deep pages*
+- **Player detail** at `/players/[playerId]` — SSG'd for all 24 seeded players. Photo placeholder, position, club, follow toggle. 8 stat tiles (goals/assists/xG/xA/key passes/pressures/pass acc./minutes), pure-SVG 10-match form area chart, predicted market value mini-card, similar-players grid, side-by-side radar with self.
+- Cluster scatter detail panel now links to the full player profile.
+- **Club detail** at `/clubs/[clubId]` — SSG'd for all 40 seeded clubs. Header with crest placeholder + follow toggle. 6 tabs: Overview (4-stat row + live now + up next), Squad (placeholder for Phase 2 cutover), Fixtures (upcoming MatchCards), Results (finished MatchCards), Transfers (placeholder for Phase 6 cutover), Stats (win rate + per-match goal averages).
+- `app/clubs/page.tsx` — proper index now: followed clubs section + popular-club grid; cards link to detail.
+
+*Static-export refactor (the GitHub Pages prerequisites)*
+- `lib/api/client.ts` — replaced fetch-based wrappers with direct demo-data lookups wrapped in `Promise.resolve()`. Same shape as before, so all hooks (`useLiveScores`, `useFixtures`, `useStandings`, `useMatchDetail`) keep working unchanged.
+- `app/api/` — **deleted** (incompatible with `output: 'export'`). The 6 routes were demo-only and never had real adapters.
+- `app/intelligence/[slug]/page.tsx` — **deleted** (was dead code — all 6 features already had specific routes).
+- `middleware.ts` — **deleted** (incompatible with `output: 'export'`). Auth check moved to a client component.
+- `components/layout/AuthGate.tsx` — replaces middleware. After hydration, redirects unauthenticated users to `/login` from any non-public route. Allowlists `/login` and `/onboarding`.
+- `app/intelligence/match/MatchPredictorView.tsx` — was POSTing to `/api/ml/predict-match`; now calls `predictMatch()` directly with a 220 ms `setTimeout` so the loading state still reads.
+- `next.config.js` — gated static-export config: `output: 'export'`, `trailingSlash: true`, `images.unoptimized: true`, plus `basePath` + `assetPrefix` from `NEXT_PUBLIC_BASE_PATH`. Dev still runs at `/`.
+- `package.json` — added `"build:export": "cross-env NEXT_OUTPUT=export next build"` and the `cross-env` dev dep.
+- `public/manifest.json` — paths now relative (`start_url: "."`, `icons[0].src: "icon.svg"`) so they survive both `/` (dev) and `/futology/` (Pages).
+- `public/.nojekyll` — defense-in-depth so Pages doesn't filter `_next/` files.
+- `.github/workflows/deploy.yml` — checkout → setup-node 22 → `npm ci` (in `futology/`) → typecheck → `npm run build:export` with `NEXT_PUBLIC_BASE_PATH=/futology` → upload-pages-artifact → deploy-pages.
+
+**Verified working — first deploy succeeded:**
+- `npm run build:export` locally → ✓ 80+ static pages (incl. 40 club pages, 24 player pages, 20 league pages, 6 extras pages, 7 intelligence pages)
+- Pages enabled via `gh api repos/krish2248/futology/pages -f build_type=workflow`
+- Workflow run 25247717162 → **success**, deploy-pages step published the artifact
+- Live smoke test (curl):
+  - `https://krish2248.github.io/futology/` → 200
+  - `/futology/login/` → 200
+  - `/futology/intelligence/` → 200
+  - `/futology/intelligence/extras/tournament-simulator/` → 200
+  - `/futology/players/909/` → 200
+  - `/futology/clubs/541/` → 200
+- HTML asset paths confirmed prefixed: `href="/futology/_next/static/css/..."`, etc.
+
+**Architectural note: GH Pages is the demo target. Vercel will be the cutover target.**
+
+The live GH Pages site is the canonical demo — anyone can play with the prediction loop, intelligence pages and wishlist features without standing up Supabase or RapidAPI. When we cut over to real services we'll target Vercel because:
+- Supabase Auth needs SSR cookies / route handlers (not static)
+- RapidAPI keys need server-side proxy routes
+- Background jobs (settlement cron, sentiment polling) need an Edge Runtime / serverless host
+
+Plan for the cutover: keep `output: 'export'` gated so the GH Pages demo remains, add a Vercel deployment that builds without `NEXT_OUTPUT=export` (uses real API routes + middleware). Both deployments share the same code; the env flag picks the deployment shape.
+
+**Next session starts here:**
+1. Build the news feed at `/news` and wire it into the Home empty placeholder.
+2. Finish remaining Phase 7 polish: `next-pwa` service worker, Playwright smoke (login → predict → settle → leaderboard), Lighthouse audit ≥ 90.
+3. (Or) start the Supabase cutover on a separate Vercel target.
+
+---
 
 ### Session 4 — 2026-05-02
 
