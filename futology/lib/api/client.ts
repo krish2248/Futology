@@ -18,12 +18,37 @@ import {
 import type { LeagueSeed } from "@/lib/data/leagues";
 
 export type SearchKind = "league" | "club" | "player";
-export type SearchHit = {
+
+export interface SearchHit {
   kind: SearchKind;
   id: number;
   title: string;
   subtitle: string;
-};
+}
+
+export interface LiveScoresParams {
+  league?: number;
+  status?: MatchStatus | "all";
+}
+
+export interface FixturesParams {
+  league?: number;
+  team?: number;
+  status?: MatchStatus | "all";
+}
+
+export interface StandingsParams {
+  leagueId: number;
+}
+
+export interface MatchParams {
+  fixtureId: number;
+}
+
+export interface SearchParams {
+  q: string;
+  kind?: SearchKind;
+}
 
 // Static-export-friendly: every method is a synchronous lookup wrapped in a
 // resolved promise so the call sites still feel async. When we cut over to
@@ -33,7 +58,7 @@ function resolved<T>(value: T): Promise<T> {
 }
 
 export const api = {
-  liveScores: (params?: { league?: number; status?: MatchStatus | "all" }) => {
+  liveScores: (params?: LiveScoresParams) => {
     const all = getDemoMatches();
     const status = params?.status ?? "live";
     const byStatus = status === "live" ? liveMatches(all) : matchesByStatus(all, status);
@@ -43,18 +68,19 @@ export const api = {
     return resolved<DemoMatch[]>(filtered);
   },
 
-  fixtures: (params?: {
-    league?: number;
-    team?: number;
-    status?: MatchStatus | "all";
-  }) => {
-    let result = matchesByStatus(getDemoMatches(), params?.status ?? "all");
-    if (params?.league) result = result.filter((m) => m.leagueId === params.league);
-    if (params?.team)
-      result = result.filter(
-        (m) => m.homeTeamId === params.team || m.awayTeamId === params.team,
-      );
-    return resolved<DemoMatch[]>(result);
+  fixtures: (params?: FixturesParams) => {
+    const all = getDemoMatches();
+    const status = params?.status ?? "all";
+    const filtered = matchesByStatus(all, status);
+    const withLeague = params?.league
+      ? filtered.filter((m) => m.leagueId === params.league)
+      : filtered;
+    const withTeam = params?.team
+      ? withLeague.filter(
+          (m) => m.homeTeamId === params.team || m.awayTeamId === params.team,
+        )
+      : withLeague;
+    return resolved<DemoMatch[]>(withTeam);
   },
 
   standings: (leagueId: number) => {
